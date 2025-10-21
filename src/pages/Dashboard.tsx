@@ -127,31 +127,38 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </GlassCard>
 
-            {/* Gráfico Circular - Distribución de Módulos */}
-            <GlassCard>
-              <h3 className="text-xl font-bold text-white mb-4">🎯 Distribución de Datos</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={dataModulos}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) => `${entry.name}: ${entry.value}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {dataModulos.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </GlassCard>
+           {/* Gráfico Circular - Distribución de Módulos */}
+<GlassCard>
+  <h3 className="text-xl font-bold text-white mb-4">🎯 Distribución de Datos</h3>
+  {dataModulos.some(d => d.value > 0) ? (
+    <ResponsiveContainer width="100%" height={250}>
+      <PieChart>
+        <Pie
+          data={dataModulos}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={(entry) => entry.value > 0 ? `${entry.name}: ${entry.value}` : ''}
+          outerRadius={80}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {dataModulos.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color} />
+          ))}
+        </Pie>
+        <Tooltip 
+          contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  ) : (
+    <div className="flex items-center justify-center h-[250px] text-white/60">
+      No hay datos para mostrar
+    </div>
+  )}
+</GlassCard>
+
           </div>
 
           {/* Gráfico de Línea - Tendencia */}
