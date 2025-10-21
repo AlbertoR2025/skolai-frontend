@@ -100,16 +100,20 @@ const Convivencia: React.FC = () => {
   };
 
   return (
-  <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-white">🛡️ Convivencia Escolar</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-white/30 hover:bg-white/40 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105"
-        >
-          {showForm ? '❌ Cancelar' : '➕ Registrar Incidente'}
-        </button>
-      </div>
+  <div className="flex flex-col gap-4 mb-8">
+  <div className="flex items-center gap-3">
+    <span className="text-5xl">🛡️</span>
+    <h1 className="text-3xl lg:text-4xl font-bold text-white">Convivencia</h1>
+  </div>
+  <button
+    onClick={() => setShowModal(true)}
+    className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg w-full lg:w-auto lg:self-start"
+  >
+    <span className="text-xl">➕</span>
+    <span>Nuevo Incidente</span>
+  </button>
+</div>
+
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

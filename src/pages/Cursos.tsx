@@ -126,12 +126,20 @@ const Cursos: React.FC = () => {
         </GlassCard>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cursos.length === 0 ? (
-          <div className="col-span-full text-center text-white/60 text-lg py-12">
-            <div className="text-6xl mb-4">📚</div>
-            No hay cursos registrados. ¡Agrega el primero!
-          </div>
+      <div className="flex flex-col gap-4 mb-8">
+  <div className="flex items-center gap-3">
+    <span className="text-5xl">📚</span>
+    <h1 className="text-3xl lg:text-4xl font-bold text-white">Cursos</h1>
+  </div>
+  <button
+    onClick={() => setShowModal(true)}
+    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg w-full lg:w-auto lg:self-start"
+  >
+    <span className="text-xl">➕</span>
+    <span>Nuevo Curso</span>
+  </button>
+</div>
+
         ) : (
           cursos.map((curso) => (
             <GlassCard key={curso.id}>
