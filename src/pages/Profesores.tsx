@@ -1,175 +1,282 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import GlassCard from '../components/GlassCard';
+import { supabase } from '../lib/supabase';
 
 interface Profesor {
-  id: string;
+  id: number;
   nombre: string;
+  apellido: string;
+  rut: string;
+  especialidad: string;
   email: string;
-  asignatura: string;
+  telefono: string;
 }
 
-const Profesores: React.FC = () => {
+const Profesores = () => {
   const [profesores, setProfesores] = useState<Profesor[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
+    apellido: '',
+    rut: '',
+    especialidad: '',
     email: '',
-    asignatura: ''
+    telefono: '',
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('skolai_profesores');
-    if (saved && saved !== '[]') {
-      setProfesores(JSON.parse(saved));
-    }
-    setIsLoaded(true);
+    loadProfesores();
   }, []);
 
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('skolai_profesores', JSON.stringify(profesores));
+  const loadProfesores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Profesores')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setProfesores(data);
+        localStorage.setItem('skolai_profesores', JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Error cargando profesores:', error);
+      const stored = localStorage.getItem('skolai_profesores');
+      if (stored) {
+        setProfesores(JSON.parse(stored));
+      }
     }
-  }, [profesores, isLoaded]);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingId) {
-      setProfesores(profesores.map(prof => 
-        prof.id === editingId ? { ...formData, id: editingId } : prof
-      ));
-      alert('✅ Profesor actualizado exitosamente');
-    } else {
-      const newProfesor = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setProfesores([...profesores, newProfesor]);
-      alert('✅ Profesor agregado exitosamente');
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from('Profesores')
+          .update(formData)
+          .eq('id', editingId);
+        
+        if (error) throw error;
+        
+        setProfesores(profesores.map(prof => 
+          prof.id === editingId ? { ...prof, ...formData } : prof
+        ));
+      } else {
+        const { data, error } = await supabase
+          .from('Profesores')
+          .insert([formData])
+          .select();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setProfesores([data[0], ...profesores]);
+        }
+      }
+      
+      await loadProfesores();
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error guardando profesor:', error);
+      alert('Error al guardar. Intenta nuevamente.');
     }
-    
-    setFormData({ nombre: '', email: '', asignatura: '' });
-    setShowForm(false);
-    setEditingId(null);
   };
 
   const handleEdit = (profesor: Profesor) => {
+    setEditingId(profesor.id);
     setFormData({
       nombre: profesor.nombre,
+      apellido: profesor.apellido,
+      rut: profesor.rut,
+      especialidad: profesor.especialidad,
       email: profesor.email,
-      asignatura: profesor.asignatura
+      telefono: profesor.telefono,
     });
-    setEditingId(profesor.id);
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  const handleCancel = () => {
-    setFormData({ nombre: '', email: '', asignatura: '' });
-    setShowForm(false);
+  const handleDelete = async (id: number) => {
+    if (confirm('¿Estás seguro de eliminar este profesor?')) {
+      try {
+        const { error } = await supabase
+          .from('Profesores')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+        
+        setProfesores(profesores.filter(prof => prof.id !== id));
+        await loadProfesores();
+      } catch (error) {
+        console.error('Error eliminando profesor:', error);
+        alert('Error al eliminar. Intenta nuevamente.');
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nombre: '',
+      apellido: '',
+      rut: '',
+      especialidad: '',
+      email: '',
+      telefono: '',
+    });
     setEditingId(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este profesor?')) return;
-    setProfesores(profesores.filter(p => p.id !== id));
-    alert('✅ Profesor eliminado');
-  };
-
   return (
-  <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
+    <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-white">👨‍🏫 Profesores</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-white/30 hover:bg-white/40 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105"
+          onClick={() => setShowModal(true)}
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105 flex items-center gap-2"
         >
-          {showForm ? '❌ Cancelar' : '➕ Nuevo Profesor'}
+          ➕ Nuevo Profesor
         </button>
       </div>
-      
-      {showForm && (
-        <GlassCard className="mb-8">
-          <h2 className="text-2xl text-white mb-4 font-bold">
-            {editingId ? '✏️ Editar Profesor' : '➕ Agregar Profesor'}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Nombre completo"
-              value={formData.nombre}
-              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-              className="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Asignatura"
-              value={formData.asignatura}
-              onChange={(e) => setFormData({...formData, asignatura: e.target.value})}
-              className="w-full p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                className="flex-1 bg-green-500/50 hover:bg-green-600/50 text-white font-bold py-3 px-4 rounded-lg transition duration-200"
-              >
-                {editingId ? '💾 Actualizar' : '➕ Agregar'}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="bg-gray-500/50 hover:bg-gray-600/50 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </GlassCard>
-      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {profesores.length === 0 ? (
-          <div className="col-span-full text-center text-white/60 text-lg py-12">
+      {profesores.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-12">
             <div className="text-6xl mb-4">👨‍🏫</div>
-            No hay profesores registrados. ¡Agrega el primero!
+            <p className="text-white text-xl">No hay profesores registrados. ¡Agrega el primero!</p>
           </div>
-        ) : (
-          profesores.map((profesor) => (
+        </GlassCard>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {profesores.map((profesor) => (
             <GlassCard key={profesor.id}>
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold text-white">{profesor.nombre}</h3>
+              <div className="flex justify-between items-start mb-4">
+                <div className="text-4xl">👨‍🏫</div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(profesor)}
-                    className="bg-blue-500/50 hover:bg-blue-600/50 text-white font-bold py-1 px-3 rounded-lg transition text-sm"
+                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded transition duration-200"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(profesor.id)}
-                    className="bg-red-500/50 hover:bg-red-600/50 text-white font-bold py-1 px-3 rounded-lg transition text-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition duration-200"
                   >
                     🗑️
                   </button>
                 </div>
               </div>
-              <p className="text-white/80 mb-1">📧 {profesor.email}</p>
-              <p className="text-white/80">📚 {profesor.asignatura}</p>
+              <h3 className="text-xl font-bold text-white mb-2">
+                {profesor.nombre} {profesor.apellido}
+              </h3>
+              <div className="space-y-1 text-white/80 text-sm">
+                <p><strong>RUT:</strong> {profesor.rut}</p>
+                <p><strong>Especialidad:</strong> {profesor.especialidad}</p>
+                <p><strong>Email:</strong> {profesor.email}</p>
+                <p><strong>Teléfono:</strong> {profesor.telefono}</p>
+              </div>
             </GlassCard>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-blue-900/90 to-indigo-900/90 backdrop-blur-md rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+            <h2 className="text-3xl font-bold text-white mb-6">
+              {editingId ? '✏️ Editar Profesor' : '➕ Nuevo Profesor'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Apellido</label>
+                  <input
+                    type="text"
+                    value={formData.apellido}
+                    onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">RUT</label>
+                  <input
+                    type="text"
+                    value={formData.rut}
+                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Especialidad</label>
+                  <input
+                    type="text"
+                    value={formData.especialidad}
+                    onChange={(e) => setFormData({ ...formData, especialidad: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Teléfono</label>
+                  <input
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 rounded-lg transition duration-200"
+                >
+                  {editingId ? 'Actualizar' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-lg transition duration-200"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
