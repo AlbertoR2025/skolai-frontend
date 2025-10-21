@@ -138,20 +138,12 @@ const Profesores: React.FC = () => {
         </GlassCard>
       )}
 
-     <div className="flex flex-col gap-4 mb-8">
-  <div className="flex items-center gap-3">
-    <span className="text-5xl">👨‍🏫</span>
-    <h1 className="text-3xl lg:text-4xl font-bold text-white">Profesores</h1>
-  </div>
-  <button
-    onClick={() => setShowModal(true)}
-    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg w-full lg:w-auto lg:self-start"
-  >
-    <span className="text-xl">➕</span>
-    <span>Nuevo Profesor</span>
-  </button>
-</div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {profesores.length === 0 ? (
+          <div className="col-span-full text-center text-white/60 text-lg py-12">
+            <div className="text-6xl mb-4">👨‍🏫</div>
+            No hay profesores registrados. ¡Agrega el primero!
+          </div>
         ) : (
           profesores.map((profesor) => (
             <GlassCard key={profesor.id}>
