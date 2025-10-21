@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const API_KEY = 'AIzaSyDy6Iy9YqrVchNzmhgdiFQNKZLY0vO-yHE';
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDy6Iy9YqrVchNzmhgdiFQNKZLY0vO-yHE';
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export const generateInformeConIA = async (
@@ -38,6 +38,6 @@ El informe debe ser profesional, empático y orientado a la acción.
     return response.text();
   } catch (error) {
     console.error('Error generando informe con Gemini:', error);
-    return 'Error al generar el informe. Por favor, intenta nuevamente.';
+    throw new Error('Error al conectar con la IA. Verifica la configuración de la API Key.');
   }
 };
