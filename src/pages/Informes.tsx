@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import GlassCard from '../components/GlassCard';
 import { generateInformeConIA } from '../services/gemini';
+import jsPDF from 'jspdf';
 
 const Informes = () => {
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,41 @@ const Informes = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDescargarPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+    
+    // Título
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Informe Octubre 2025', margin, margin);
+    
+    // Fecha
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generado: ${new Date().toLocaleDateString('es-CL')}`, margin, margin + 10);
+    
+    // Contenido del informe
+    doc.setFontSize(11);
+    const lines = doc.splitTextToSize(informe, maxWidth);
+    let y = margin + 25;
+    
+    lines.forEach((line: string) => {
+      if (y > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += 7;
+    });
+    
+    // Guardar PDF
+    doc.save(`Informe_${new Date().toLocaleDateString('es-CL').replace(/\//g, '-')}.pdf`);
   };
 
   return (
@@ -101,7 +137,15 @@ const Informes = () => {
       {/* Informe generado */}
       {informe && (
         <GlassCard>
-          <h2 className="text-2xl font-bold text-white mb-4">📋 Informe Generado</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-white">📋 Informe Generado</h2>
+            <button
+              onClick={handleDescargarPDF}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center gap-2"
+            >
+              📥 Descargar PDF
+            </button>
+          </div>
           <div className="text-white whitespace-pre-wrap leading-relaxed">
             {informe}
           </div>
