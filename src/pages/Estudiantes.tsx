@@ -1,247 +1,311 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import GlassCard from '../components/GlassCard';
+import { supabase } from '../lib/supabase';
 
 interface Estudiante {
-  id: string;
-  rut: string;
+  id: number;
   nombre: string;
   apellido: string;
+  rut: string;
   curso: string;
-  email: string;
+  fecha_nac: string;
+  apoderado: string;
   telefono: string;
-  fechaNacimiento: string;
+  email: string;
 }
 
-const Estudiantes: React.FC = () => {
+const Estudiantes = () => {
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    rut: '',
     nombre: '',
     apellido: '',
+    rut: '',
     curso: '',
-    email: '',
+    fecha_nac: '',
+    apoderado: '',
     telefono: '',
-    fechaNacimiento: ''
+    email: '',
   });
 
-  // Cargar datos desde LocalStorage al iniciar
   useEffect(() => {
-    const savedEstudiantes = localStorage.getItem('skolai_estudiantes');
-    if (savedEstudiantes && savedEstudiantes !== '[]') {
-      setEstudiantes(JSON.parse(savedEstudiantes));
-    }
-    setIsLoaded(true);
+    loadEstudiantes();
   }, []);
 
-  // Guardar datos en LocalStorage SOLO después de cargar
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('skolai_estudiantes', JSON.stringify(estudiantes));
+  const loadEstudiantes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Estudiantes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setEstudiantes(data);
+        localStorage.setItem('skolai_estudiantes', JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Error cargando estudiantes:', error);
+      const stored = localStorage.getItem('skolai_estudiantes');
+      if (stored) {
+        setEstudiantes(JSON.parse(stored));
+      }
     }
-  }, [estudiantes, isLoaded]);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingId) {
-      setEstudiantes(estudiantes.map(est => 
-        est.id === editingId ? { ...formData, id: editingId } : est
-      ));
-      alert('✅ Estudiante actualizado exitosamente');
-    } else {
-      const newEstudiante = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setEstudiantes([...estudiantes, newEstudiante]);
-      alert('✅ Estudiante agregado exitosamente');
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from('Estudiantes')
+          .update(formData)
+          .eq('id', editingId);
+        
+        if (error) throw error;
+        
+        setEstudiantes(estudiantes.map(est => 
+          est.id === editingId ? { ...est, ...formData } : est
+        ));
+      } else {
+        const { data, error } = await supabase
+          .from('Estudiantes')
+          .insert([formData])
+          .select();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setEstudiantes([data[0], ...estudiantes]);
+        }
+      }
+      
+      await loadEstudiantes();
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error guardando estudiante:', error);
+      alert('Error al guardar. Intenta nuevamente.');
     }
-    
-    setFormData({
-      rut: '',
-      nombre: '',
-      apellido: '',
-      curso: '',
-      email: '',
-      telefono: '',
-      fechaNacimiento: ''
-    });
-    setShowForm(false);
-    setEditingId(null);
   };
 
   const handleEdit = (estudiante: Estudiante) => {
+    setEditingId(estudiante.id);
     setFormData({
-      rut: estudiante.rut,
       nombre: estudiante.nombre,
       apellido: estudiante.apellido,
+      rut: estudiante.rut,
       curso: estudiante.curso,
-      email: estudiante.email,
+      fecha_nac: estudiante.fecha_nac,
+      apoderado: estudiante.apoderado,
       telefono: estudiante.telefono,
-      fechaNacimiento: estudiante.fechaNacimiento
+      email: estudiante.email,
     });
-    setEditingId(estudiante.id);
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  const handleCancel = () => {
+  const handleDelete = async (id: number) => {
+    if (confirm('¿Estás seguro de eliminar este estudiante?')) {
+      try {
+        const { error } = await supabase
+          .from('Estudiantes')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+        
+        setEstudiantes(estudiantes.filter(est => est.id !== id));
+        await loadEstudiantes();
+      } catch (error) {
+        console.error('Error eliminando estudiante:', error);
+        alert('Error al eliminar. Intenta nuevamente.');
+      }
+    }
+  };
+
+  const resetForm = () => {
     setFormData({
-      rut: '',
       nombre: '',
       apellido: '',
+      rut: '',
       curso: '',
-      email: '',
+      fecha_nac: '',
+      apoderado: '',
       telefono: '',
-      fechaNacimiento: ''
+      email: '',
     });
-    setShowForm(false);
     setEditingId(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este estudiante?')) return;
-    setEstudiantes(estudiantes.filter(e => e.id !== id));
-    alert('✅ Estudiante eliminado');
-  };
-
- return (
-  <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
-
+  return (
+    <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-white">👨‍🎓 Estudiantes</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-white/30 hover:bg-white/40 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105"
+          onClick={() => setShowModal(true)}
+          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105 flex items-center gap-2"
         >
-          {showForm ? '❌ Cancelar' : '➕ Nuevo Estudiante'}
+          ➕ Nuevo Estudiante
         </button>
       </div>
 
-      {showForm && (
-        <GlassCard className="mb-8">
-          <h2 className="text-2xl text-white mb-4 font-bold">
-            {editingId ? '✏️ Editar Estudiante' : '➕ Agregar Estudiante'}
-          </h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="RUT (ej: 12.345.678-9)"
-              value={formData.rut}
-              onChange={(e) => setFormData({...formData, rut: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Nombre"
-              value={formData.nombre}
-              onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Apellido"
-              value={formData.apellido}
-              onChange={(e) => setFormData({...formData, apellido: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Curso (ej: 4° Básico A)"
-              value={formData.curso}
-              onChange={(e) => setFormData({...formData, curso: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="tel"
-              placeholder="Teléfono"
-              value={formData.telefono}
-              onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <input
-              type="date"
-              value={formData.fechaNacimiento}
-              onChange={(e) => setFormData({...formData, fechaNacimiento: e.target.value})}
-              className="p-3 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:border-white/60"
-              required
-            />
-            <div className="md:col-span-2 flex gap-4">
-              <button
-                type="submit"
-                className="flex-1 bg-green-500/50 hover:bg-green-600/50 text-white font-bold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105"
-              >
-                {editingId ? '💾 Actualizar' : '💾 Guardar'}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="bg-gray-500/50 hover:bg-gray-600/50 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </GlassCard>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {estudiantes.length === 0 ? (
-          <div className="col-span-full text-center text-white/60 text-lg py-12">
+      {estudiantes.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-12">
             <div className="text-6xl mb-4">👨‍🎓</div>
-            No hay estudiantes registrados. ¡Agrega el primero!
+            <p className="text-white text-xl">No hay estudiantes registrados. ¡Agrega el primero!</p>
           </div>
-        ) : (
-          estudiantes.map((estudiante) => (
+        </GlassCard>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {estudiantes.map((estudiante) => (
             <GlassCard key={estudiante.id}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center text-3xl">
-                  👤
-                </div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="text-4xl">👨‍🎓</div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(estudiante)}
-                    className="bg-blue-500/50 hover:bg-blue-600/50 text-white font-bold py-1 px-3 rounded-lg transition text-sm"
+                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded transition duration-200"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(estudiante.id)}
-                    className="bg-red-500/50 hover:bg-red-600/50 text-white font-bold py-1 px-3 rounded-lg transition text-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition duration-200"
                   >
                     🗑️
                   </button>
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-1">
+              <h3 className="text-xl font-bold text-white mb-2">
                 {estudiante.nombre} {estudiante.apellido}
               </h3>
-              <p className="text-white/70 text-sm mb-2">RUT: {estudiante.rut}</p>
               <div className="space-y-1 text-white/80 text-sm">
-                <p>📚 {estudiante.curso}</p>
-                <p>📧 {estudiante.email}</p>
-                <p>📱 {estudiante.telefono}</p>
-                <p>🎂 {new Date(estudiante.fechaNacimiento + 'T00:00:00').toLocaleDateString('es-CL')}</p>
+                <p><strong>RUT:</strong> {estudiante.rut}</p>
+                <p><strong>Curso:</strong> {estudiante.curso}</p>
+                <p><strong>Apoderado:</strong> {estudiante.apoderado}</p>
+                <p><strong>Teléfono:</strong> {estudiante.telefono}</p>
+                <p><strong>Email:</strong> {estudiante.email}</p>
               </div>
             </GlassCard>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-purple-900/90 to-pink-900/90 backdrop-blur-md rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+            <h2 className="text-3xl font-bold text-white mb-6">
+              {editingId ? '✏️ Editar Estudiante' : '➕ Nuevo Estudiante'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Apellido</label>
+                  <input
+                    type="text"
+                    value={formData.apellido}
+                    onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">RUT</label>
+                  <input
+                    type="text"
+                    value={formData.rut}
+                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Curso</label>
+                  <input
+                    type="text"
+                    value={formData.curso}
+                    onChange={(e) => setFormData({ ...formData, curso: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Fecha de Nacimiento</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_nac}
+                    onChange={(e) => setFormData({ ...formData, fecha_nac: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Apoderado</label>
+                  <input
+                    type="text"
+                    value={formData.apoderado}
+                    onChange={(e) => setFormData({ ...formData, apoderado: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Teléfono</label>
+                  <input
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 rounded-lg transition duration-200"
+                >
+                  {editingId ? 'Actualizar' : 'Guardar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-lg transition duration-200"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
