@@ -74,15 +74,21 @@ const Comunicados: React.FC = () => {
 
   return (
   <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-white">📢 Comunicados</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-white/30 hover:bg-white/40 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105"
-        >
-          {showForm ? '❌ Cancelar' : '➕ Nuevo Comunicado'}
-        </button>
-      </div>
+  {/* Header mejorado */}
+  <div className="flex flex-col gap-4 mb-8">
+    <div className="flex items-center gap-3">
+      <span className="text-5xl">📢</span>
+      <h1 className="text-3xl lg:text-4xl font-bold text-white">Comunicados</h1>
+    </div>
+    <button
+      onClick={() => setShowModal(true)}
+      className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg w-full lg:w-auto lg:self-start"
+    >
+      <span className="text-xl">➕</span>
+      <span>Nuevo Comunicado</span>
+    </button>
+  </div>
+
       
       {showForm && (
         <GlassCard className="mb-8">
