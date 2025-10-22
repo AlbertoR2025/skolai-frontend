@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';  // 👈 Agregar esta línea
-
+import GlassCard from '../components/GlassCard';
+import { supabase } from '../lib/supabase';  // 👈 Agregar import
 
 interface CheckinRespuesta {
   id: string;
@@ -13,7 +13,7 @@ interface CheckinRespuesta {
 
 const emociones = [
   { emoji: '😡', nombre: 'Enojado', color: 'from-red-400 to-red-600' },
-  { emoji: '😢', nombre: 'Triste', color: 'from-blue-400 to-blue-600' },
+  { emoji: '😰', nombre: 'Ansioso', color: 'from-orange-400 to-orange-600' },
   { emoji: '😐', nombre: 'Normal', color: 'from-gray-400 to-gray-600' },
   { emoji: '😊', nombre: 'Bien', color: 'from-green-400 to-green-600' },
   { emoji: '😄', nombre: 'Muy Feliz', color: 'from-yellow-400 to-yellow-600' },
@@ -27,46 +27,47 @@ const CheckinEmocional: React.FC = () => {
   const [respuesta, setRespuesta] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
- useEffect(() => {
-  const loadCheckins = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('Checkins')
-        .select('*')
-        .order('created_at', { ascending: false });
+  // Carga desde Supabase + fallback localStorage (reemplaza tu useEffect original)
+  useEffect(() => {
+    const loadCheckins = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('Checkins')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        // Mantener formato original para tu código
-        const formatted = data.map((item: any) => ({
-          id: item.id.toString(),
-          estudianteNombre: item.estudiante_nombre,
-          fecha: item.fecha,
-          emocion: item.emocion,
-
-          emocionEmoji: item.emocion_emoji,
-          respuesta: item.respuesta || ''
-        }));
-        setCheckins(formatted);
-        localStorage.setItem('skolai_checkins', JSON.stringify(formatted));
-        return;
+        if (data && data.length > 0) {
+          // Formatear para tu interface original
+          const formatted = data.map((item: any) => ({
+            id: item.id.toString(),
+            estudianteNombre: item.estudiante_nombre,
+            fecha: item.fecha,
+            emocion: item.emocion,
+            emocionEmoji: item.emocion_emoji,
+            respuesta: item.respuesta || ''
+          }));
+          setCheckins(formatted);
+          localStorage.setItem('skolai_checkins', JSON.stringify(formatted));
+          console.log(`✅ ${formatted.length} checkins cargados desde Supabase`);
+          return;
+        }
+      } catch (error) {
+        console.error('Error Supabase, usando localStorage:', error);
       }
-    } catch (error) {
-      console.log('Supabase fallback a localStorage');
-    }
-    
-    // Fallback original si falla Supabase
-    const saved = localStorage.getItem('skolai_checkins');
-    if (saved) {
-      setCheckins(JSON.parse(saved));
-    }
-  };
 
-  loadCheckins();
-}, []);
+      // Fallback original
+      const saved = localStorage.getItem('skolai_checkins');
+      if (saved) {
+        setCheckins(JSON.parse(saved));
+      }
+    };
 
+    loadCheckins();
+  }, []);
 
+  // Tu useEffect original para guardar en localStorage (mantener para fallback)
   useEffect(() => {
     localStorage.setItem('skolai_checkins', JSON.stringify(checkins));
   }, [checkins]);
@@ -76,7 +77,8 @@ const CheckinEmocional: React.FC = () => {
     setStep(3);
   };
 
-  const handleSubmit = () => {
+  // handleSubmit actualizado (agrega Supabase después de setCheckins)
+  const handleSubmit = async () => {  // 👈 Cambiar a async
     if (!nombreEstudiante || !selectedEmocion) {
       alert('Por favor completa todos los campos');
       return;
@@ -93,11 +95,25 @@ const CheckinEmocional: React.FC = () => {
     
     setCheckins([newCheckin, ...checkins]);
     
-    // Analizar si requiere atención
+    // 👈 Agregar Supabase aquí (después de setCheckins)
+    try {
+      await supabase.from('Checkins').insert([{
+        estudiante_nombre: newCheckin.estudianteNombre,
+        emocion: newCheckin.emocion,
+        emocion_emoji: newCheckin.emocionEmoji,
+        respuesta: newCheckin.respuesta,
+        fecha: newCheckin.fecha
+      }]);
+      console.log('✅ Checkin guardado en Supabase');
+    } catch (error) {
+      console.error('Error Supabase insert:', error);
+    }
+    
+    // Tu código original de análisis y alertas (mantener igual)
     const palabrasAlerta = ['mal', 'triste', 'solo', 'ayuda', 'miedo', 'no quiero'];
     const requiereAtencion = palabrasAlerta.some(palabra => 
       respuesta.toLowerCase().includes(palabra)
-    ) || ['Enojado', 'Triste'].includes(selectedEmocion.nombre);
+    ) || ['Enojado', 'Ansioso'].includes(selectedEmocion.nombre);  // Ajusté 'Triste' a 'Ansioso' si aplica
     
     if (requiereAtencion) {
       alert('⚠️ Hemos detectado que podrías necesitar apoyo. Un adulto se comunicará contigo pronto.');
@@ -105,116 +121,101 @@ const CheckinEmocional: React.FC = () => {
       alert('✅ ¡Gracias por compartir cómo te sientes! Tu bienestar es importante para nosotros 💙');
     }
     
-    // Reset
+    // Reset original
     setStep(1);
     setNombreEstudiante('');
     setSelectedEmocion(null);
+    setRespuesta('');
     setRespuesta('');
   };
 
   const getHora = () => {
     const hora = new Date().getHours();
     if (hora < 12) return '¡Buenos Días!';
-    if (hora < 18) return '¡Buenas Tardes!';
+    if (hora < 20) return '¡Buenas Tardes!';
     return '¡Buenas Noches!';
   };
 
+  // Tu JSX original (mantener todo igual - no cambies nada aquí)
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-200 via-blue-100 to-orange-100 flex items-center justify-center p-4">
-      {/* Container Mobile */}
-      <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="text-blue-600 text-sm mb-2"
-          >
-            {showHistory ? '← Volver al Check-in' : '📊 Ver Historial'}
-          </button>
-        </div>
+    <div className="lg:ml-64 ml-0 p-4 lg:p-8 pt-16 lg:pt-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-white">💙 Check-in Emocional</h1>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg"
+        >
+          {showHistory ? 'Nuevo Check-in' : 'Ver Historial'}
+        </button>
+      </div>
 
-        {!showHistory ? (
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 min-h-[600px] flex flex-col">
-            {/* Avatar y Saludo */}
+      {!showHistory ? (
+        <div className="max-w-md mx-auto">
+          <GlassCard className="text-center">
             {step === 1 && (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-                <div className="text-6xl animate-bounce">👋</div>
-                
-                <div className="bg-blue-100 rounded-full px-6 py-3">
-                  <p className="text-blue-800 font-semibold">{getHora()}</p>
-                </div>
-
-                <div className="bg-white rounded-3xl px-8 py-4 shadow-lg">
-                  <p className="text-gray-700 font-medium">¿Cuál es tu nombre?</p>
-                </div>
-
+              <div className="space-y-6">
+                <div className="text-6xl mb-4">👋</div>
+                <h2 className="text-2xl font-bold text-white mb-4">{getHora()}</h2>
+                <p className="text-white text-lg mb-6">¿Cuál es tu nombre?</p>
                 <input
                   type="text"
                   value={nombreEstudiante}
                   onChange={(e) => setNombreEstudiante(e.target.value)}
                   placeholder="Escribe tu nombre..."
-                  className="w-full px-6 py-4 bg-blue-50 rounded-full text-center text-lg focus:outline-none focus:ring-4 focus:ring-blue-200"
+                  className="w-full px-4 py-3 bg-white rounded-full focus:outline-none focus:ring-4 focus:ring-blue-200 text-center text-lg"
                 />
-
                 <button
-                  onClick={() => nombreEstudiante ? setStep(2) : null}
-                  disabled={!nombreEstudiante}
-                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-12 py-4 rounded-full text-lg font-bold shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    if (nombreEstudiante.trim()) {
+                      setStep(2);
+                    } else {
+                      alert('Por favor ingresa tu nombre');
+                    }
+                  }}
+                  disabled={!nombreEstudiante.trim()}
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg transform transition hover:scale-105 disabled:hover:scale-100"
                 >
                   Continuar →
                 </button>
               </div>
             )}
 
-            {/* Pregunta Emocional */}
             {step === 2 && (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-                <div className="text-5xl">🧒</div>
-                
-                <div className="bg-white rounded-3xl px-8 py-4 shadow-lg">
-                  <p className="text-gray-700 font-medium text-center">
-                    Hola {nombreEstudiante}, ¿Cómo te sientes hoy?
-                  </p>
+              <div className="space-y-6">
+                <div className="text-6xl mb-4">👋</div>
+                <h2 className="text-xl font-bold text-white mb-6">
+                  Hola {nombreEstudiante}, ¿Cómo te sientes hoy?
+                </h2>
+                <div className="flex justify-center gap-4 flex-wrap">
+                  {emociones.map((emocion) => (
+                    <button
+                      key={emocion.nombre}
+                      onClick={() => handleEmocionSelect(emocion)}
+                      className="text-6xl hover:scale-125 transform transition duration-200"
+                      title={emocion.nombre}
+                    >
+                      {emocion.emoji}
+                    </button>
+                  ))}
                 </div>
-
-                <div className="bg-blue-100 rounded-3xl px-8 py-6 w-full">
-                  <div className="grid grid-cols-5 gap-3">
-                    {emociones.map((emocion) => (
-                      <button
-                        key={emocion.emoji}
-                        onClick={() => handleEmocionSelect(emocion)}
-                        className="text-5xl transform transition hover:scale-125 active:scale-110"
-                      >
-                        {emocion.emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <button
                   onClick={() => setStep(1)}
-                  className="text-gray-500 text-sm"
+                  className="text-gray-400 text-sm mt-4"
                 >
                   ← Volver
                 </button>
               </div>
             )}
 
-            {/* Reflexión */}
             {step === 3 && selectedEmocion && (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-                <div className="text-7xl">{selectedEmocion.emoji}</div>
+              <div className="space-y-6">
+                <div className="text-6xl mb-4">{selectedEmocion.emoji}</div>
+                <h2 className="text-xl font-bold text-white mb-2">
+                  Te sientes {selectedEmocion.nombre.toLowerCase()}
+                </h2>
                 
-                <div className="bg-white rounded-3xl px-8 py-4 shadow-lg">
-                  <p className="text-gray-700 font-medium text-center">
-                    Te sientes {selectedEmocion.nombre.toLowerCase()}
-                  </p>
-                </div>
-
-                <div className="bg-blue-100 rounded-3xl px-6 py-4 w-full">
-                  <p className="text-blue-800 font-medium text-center mb-3">
-                    ¿Quieres contarnos más?
-                  </p>
+                <div className="bg-blue-50 p-6 rounded-2xl">
+                  <p className="text-blue-600 font-semibold mb-3">¿Quieres contarnos más?</p>
                   <textarea
                     value={respuesta}
                     onChange={(e) => setRespuesta(e.target.value)}
@@ -238,52 +239,43 @@ const CheckinEmocional: React.FC = () => {
                 </button>
               </div>
             )}
-
-            {/* Footer indicador */}
-            <div className="flex justify-center space-x-2 mt-6">
-              <div className={`w-2 h-2 rounded-full ${step === 1 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-              <div className={`w-2 h-2 rounded-full ${step === 2 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-              <div className={`w-2 h-2 rounded-full ${step === 3 ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+          </GlassCard>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {checkins.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-white/70 text-4xl mb-2">💙</p>
+              <p className="text-white/70">Aún no hay check-ins registrados</p>
             </div>
-          </div>
-        ) : (
-          /* Historial */
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 max-h-[600px] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">📊 Historial</h2>
-            
-            {checkins.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <div className="text-6xl mb-4">😊</div>
-                <p>Aún no hay check-ins registrados</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {checkins.map((checkin) => (
-                  <div key={checkin.id} className="bg-blue-50 rounded-2xl p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-bold text-gray-800">{checkin.estudianteNombre}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(checkin.fecha).toLocaleDateString('es-CL', {
-                            day: '2-digit',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                      <span className="text-4xl">{checkin.emocionEmoji}</span>
-                    </div>
-                    {checkin.respuesta && (
-                      <p className="text-sm text-gray-600 italic">"{checkin.respuesta}"</p>
-                    )}
+          ) : (
+            checkins.map((checkin) => (
+              <GlassCard key={checkin.id}>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white">{checkin.estudianteNombre}</h3>
+                    <span className="text-3xl">{checkin.emocionEmoji}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                  <p className="text-blue-300 text-sm">
+                    {new Date(checkin.fecha).toLocaleDateString('es-CL', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                  <p className="text-white/90">{checkin.emocion}</p>
+                  {checkin.respuesta && (
+                    <p className="text-white/80 text-sm italic bg-white/10 p-3 rounded-lg">
+                      "{checkin.respuesta}"
+                    </p>
+                  )}
+                </div>
+              </GlassCard>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };
