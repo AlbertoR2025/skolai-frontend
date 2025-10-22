@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';  // 👈 Agregar esta línea
+
 
 interface CheckinRespuesta {
   id: string;
@@ -25,12 +27,45 @@ const CheckinEmocional: React.FC = () => {
   const [respuesta, setRespuesta] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
+  const loadCheckins = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Checkins')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        // Mantener formato original para tu código
+        const formatted = data.map((item: any) => ({
+          id: item.id.toString(),
+          estudianteNombre: item.estudiante_nombre,
+          fecha: item.fecha,
+          emocion: item.emocion,
+
+          emocionEmoji: item.emocion_emoji,
+          respuesta: item.respuesta || ''
+        }));
+        setCheckins(formatted);
+        localStorage.setItem('skolai_checkins', JSON.stringify(formatted));
+        return;
+      }
+    } catch (error) {
+      console.log('Supabase fallback a localStorage');
+    }
+    
+    // Fallback original si falla Supabase
     const saved = localStorage.getItem('skolai_checkins');
     if (saved) {
       setCheckins(JSON.parse(saved));
     }
-  }, []);
+  };
+
+  loadCheckins();
+}, []);
+
 
   useEffect(() => {
     localStorage.setItem('skolai_checkins', JSON.stringify(checkins));
