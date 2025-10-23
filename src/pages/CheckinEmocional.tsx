@@ -13,14 +13,14 @@ const CheckinEmocional: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const emociones = [
-    { nombre: 'Enojado', emoji: '😡', color: 'from-orange-500 to-red-500', descripcion: 'Frustrado o molesto' },
+    { nombre: 'Enojado', emoji: '😡', color: 'from-red-500 to-orange-500', descripcion: 'Frustrado o molesto' },
     { nombre: 'Ansioso', emoji: '😰', color: 'from-purple-500 to-indigo-500', descripcion: 'Nervioso o preocupado' },
     { nombre: 'Normal', emoji: '😐', color: 'from-blue-500 to-cyan-500', descripcion: 'Tranquilo y estable' },
     { nombre: 'Bien', emoji: '😊', color: 'from-green-500 to-emerald-500', descripcion: 'Contento y positivo' },
-    { nombre: 'Muy Feliz', emoji: '😄', color: 'from-yellow-500 to-orange-400', descripcion: 'Excelente y energético' }
+    { nombre: 'Muy Feliz', emoji: '😄', color: 'from-yellow-500 to-amber-500', descripcion: 'Excelente y energético' }
   ];
 
-  // Cargar datos SOLO desde Supabase
+  // Cargar datos desde Supabase
   useEffect(() => {
     const loadCheckins = async () => {
       try {
@@ -128,66 +128,86 @@ const CheckinEmocional: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 lg:ml-64 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/70">Cargando...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-800 p-4 lg:ml-64 ml-0 pt-16 lg:pt-8 flex items-center justify-center">
+        <div className="text-center text-white text-xl">Cargando check-ins...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 lg:ml-64">
-      {/* Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-orange-500/20"></div>
-        <div className="relative z-10 p-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-4 bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
-            🌈 Check-in Emocional SKOLAI
-          </h1>
-          <p className="text-white/70 text-lg">Tu espacio seguro para expresar emociones</p>
-        </div>
-      </div>
-
-      <div className="p-6 max-w-6xl mx-auto">
-        {/* Progreso */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            {[1, 2, 3, 4].map((paso) => (
-              <div key={paso} className="flex flex-col items-center flex-1">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold transition-all duration-300 ${
-                  pasoActual >= paso 
-                    ? 'bg-gradient-to-r from-purple-500 to-orange-500 shadow-lg shadow-purple-500/25' 
-                    : 'bg-white/10 border border-white/20'
-                }`}>
-                  {pasoActual > paso ? '✓' : paso}
-                </div>
-                <span className="text-white/60 text-sm mt-2">
-                  {['Identificación', 'Emoción', 'Reflexión', 'Confirmación'][paso-1]}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-500 to-orange-500 transition-all duration-500"
-              style={{ width: `${((pasoActual - 1) / 3) * 100}%` }}
-            ></div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-800 p-4 lg:ml-64 ml-0 pt-16 lg:pt-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header estilo Dashboard */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">Check-in Emocional</h1>
+          <p className="text-white/70">Expresa cómo te sientes hoy</p>
         </div>
 
-        {/* Contenido Principal */}
+        {/* Cards de estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <GlassCard className="text-center">
+            <div className="text-3xl font-bold text-purple-400 mb-2">{checkins.length}</div>
+            <div className="text-white/80">Total Check-ins</div>
+          </GlassCard>
+          
+          <GlassCard className="text-center">
+            <div className="text-3xl font-bold text-green-400 mb-2">
+              {checkins.filter(c => ['Bien', 'Muy Feliz'].includes(c.emocion)).length}
+            </div>
+            <div className="text-white/80">Emociones Positivas</div>
+          </GlassCard>
+          
+          <GlassCard className="text-center">
+            <div className="text-3xl font-bold text-yellow-400 mb-2">
+              {checkins.filter(c => c.emocion === 'Normal').length}
+            </div>
+            <div className="text-white/80">Estado Neutral</div>
+          </GlassCard>
+          
+          <GlassCard className="text-center">
+            <div className="text-3xl font-bold text-red-400 mb-2">
+              {checkins.filter(c => ['Enojado', 'Ansioso'].includes(c.emocion)).length}
+            </div>
+            <div className="text-white/80">Necesita Atención</div>
+          </GlassCard>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Panel de Pasos */}
+          {/* Panel principal */}
           <div className="lg:col-span-2">
-            <GlassCard className="relative overflow-hidden border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-orange-500/5"></div>
-              <div className="relative z-10 space-y-8">
+            <GlassCard className="p-6">
+              {/* Progreso mejorado */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  {[1, 2, 3, 4].map((paso) => (
+                    <div key={paso} className="flex flex-col items-center flex-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all duration-300 ${
+                        pasoActual >= paso 
+                          ? 'bg-purple-600 shadow-lg shadow-purple-500/25' 
+                          : 'bg-white/10 border border-white/20'
+                      }`}>
+                        {pasoActual > paso ? '✓' : paso}
+                      </div>
+                      <span className="text-white/60 text-xs mt-2 text-center">
+                        {['Identificación', 'Emoción', 'Reflexión', 'Confirmación'][paso-1]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-purple-600 transition-all duration-500"
+                    style={{ width: `${((pasoActual - 1) / 3) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Contenido de pasos */}
+              <div className="space-y-6">
                 {/* Paso 1: Nombre */}
                 {pasoActual === 1 && (
                   <div className="text-center space-y-6">
-                    <div className="w-20 h-20 mx-auto bg-gradient-to-r from-purple-500 to-orange-500 rounded-full flex items-center justify-center text-3xl">
+                    <div className="w-16 h-16 mx-auto bg-purple-600 rounded-full flex items-center justify-center text-2xl">
                       👤
                     </div>
                     <div>
@@ -199,7 +219,7 @@ const CheckinEmocional: React.FC = () => {
                       placeholder="Ingresa tu nombre completo..."
                       value={nombreEstudiante}
                       onChange={(e) => setNombreEstudiante(e.target.value)}
-                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400"
                     />
                   </div>
                 )}
@@ -216,13 +236,13 @@ const CheckinEmocional: React.FC = () => {
                         <button
                           key={index}
                           onClick={() => setSelectedEmocion(emocion)}
-                          className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
+                          className={`p-4 rounded-lg transition-all duration-300 transform hover:scale-105 ${
                             selectedEmocion?.nombre === emocion.nombre
                               ? `bg-gradient-to-r ${emocion.color} shadow-lg scale-105 border-2 border-white/20`
-                              : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                              : 'bg-white/10 hover:bg-white/15 border border-white/10'
                           }`}
                         >
-                          <div className="text-4xl mb-2">{emocion.emoji}</div>
+                          <div className="text-3xl mb-2">{emocion.emoji}</div>
                           <div className="text-white font-medium text-sm">{emocion.nombre}</div>
                           <div className="text-white/50 text-xs mt-1">{emocion.descripcion}</div>
                         </button>
@@ -243,7 +263,7 @@ const CheckinEmocional: React.FC = () => {
                       value={respuesta}
                       onChange={(e) => setRespuesta(e.target.value)}
                       rows={6}
-                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                      className="w-full p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 resize-none"
                     />
                   </div>
                 )}
@@ -251,7 +271,7 @@ const CheckinEmocional: React.FC = () => {
                 {/* Paso 4: Confirmación */}
                 {pasoActual === 4 && (
                   <div className="text-center space-y-6">
-                    <div className={`w-20 h-20 mx-auto bg-gradient-to-r from-purple-500 to-orange-500 rounded-full flex items-center justify-center text-3xl ${
+                    <div className={`w-16 h-16 mx-auto bg-purple-600 rounded-full flex items-center justify-center text-2xl ${
                       isSubmitting ? 'animate-pulse' : ''
                     }`}>
                       {isSubmitting ? '⏳' : '✓'}
@@ -261,7 +281,7 @@ const CheckinEmocional: React.FC = () => {
                         {isSubmitting ? 'Guardando...' : '¡Todo listo!'}
                       </h2>
                       {!isSubmitting && (
-                        <div className="bg-white/5 rounded-xl p-6 space-y-3 text-left">
+                        <div className="bg-white/10 rounded-lg p-6 space-y-3 text-left">
                           <div className="flex justify-between">
                             <span className="text-white/60">Estudiante:</span>
                             <span className="text-white font-medium">{nombreEstudiante}</span>
@@ -273,9 +293,9 @@ const CheckinEmocional: React.FC = () => {
                             </span>
                           </div>
                           {respuesta && (
-                            <div className="flex justify-between">
+                            <div>
                               <span className="text-white/60">Reflexión:</span>
-                              <span className="text-white font-medium text-right max-w-xs">"{respuesta}"</span>
+                              <p className="text-white font-medium mt-1 bg-white/5 rounded p-2">"{respuesta}"</p>
                             </div>
                           )}
                         </div>
@@ -290,7 +310,7 @@ const CheckinEmocional: React.FC = () => {
                     <button
                       onClick={handleAnteriorPaso}
                       disabled={isSubmitting}
-                      className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all duration-300 disabled:opacity-50"
+                      className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-300 disabled:opacity-50"
                     >
                       ← Anterior
                     </button>
@@ -299,7 +319,7 @@ const CheckinEmocional: React.FC = () => {
                   {pasoActual < 4 ? (
                     <button
                       onClick={handleSiguientePaso}
-                      className="px-8 py-3 bg-gradient-to-r from-purple-500 to-orange-500 hover:from-purple-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-purple-500/25"
+                      className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all duration-300"
                     >
                       Continuar →
                     </button>
@@ -307,7 +327,7 @@ const CheckinEmocional: React.FC = () => {
                     <button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-green-500/25 disabled:opacity-50 flex items-center gap-2"
+                      className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
                     >
                       {isSubmitting ? (
                         <>
@@ -315,7 +335,7 @@ const CheckinEmocional: React.FC = () => {
                           Guardando...
                         </>
                       ) : (
-                        '🚀 Enviar Check-in'
+                        '📝 Enviar Check-in'
                       )}
                     </button>
                   )}
@@ -324,19 +344,31 @@ const CheckinEmocional: React.FC = () => {
             </GlassCard>
           </div>
 
-          {/* Panel Lateral */}
+          {/* Panel lateral */}
           <div className="space-y-6">
             <button
               onClick={toggleHistorial}
-              className="w-full p-4 bg-gradient-to-r from-purple-500 to-orange-500 hover:from-purple-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-purple-500/25 flex items-center justify-center gap-3"
+              className="w-full p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2"
             >
               {mostrarHistorial ? '👁️ Ocultar Historial' : '📖 Ver Historial'}
             </button>
 
-            <GlassCard compact>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-white/70">Conectado en tiempo real</span>
+            {/* Estadísticas rápidas */}
+            <GlassCard className="p-4">
+              <h3 className="text-white font-bold mb-3">Resumen Hoy</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-white/70">
+                  <span>Total:</span>
+                  <span className="text-white">{checkins.length}</span>
+                </div>
+                <div className="flex justify-between text-green-400">
+                  <span>Positivos:</span>
+                  <span>{checkins.filter(c => ['Bien', 'Muy Feliz'].includes(c.emocion)).length}</span>
+                </div>
+                <div className="flex justify-between text-red-400">
+                  <span>Atención:</span>
+                  <span>{checkins.filter(c => ['Enojado', 'Ansioso'].includes(c.emocion)).length}</span>
+                </div>
               </div>
             </GlassCard>
 
@@ -345,26 +377,26 @@ const CheckinEmocional: React.FC = () => {
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {checkins.length === 0 ? (
                   <GlassCard>
-                    <div className="text-center py-8 text-white/60">
-                      <div className="text-4xl mb-2">📝</div>
+                    <div className="text-center py-8 text-white/70">
+                      <div className="text-3xl mb-2">📝</div>
                       <p>No hay check-ins aún</p>
                     </div>
                   </GlassCard>
                 ) : (
                   checkins.map((checkin) => (
-                    <GlassCard key={checkin.id} compact className="transition-all duration-300 hover:scale-105 border border-white/5">
+                    <GlassCard key={checkin.id} className="p-4 border-l-4 border-purple-500">
                       <div className="flex items-start gap-3">
                         <div className="text-2xl">{checkin.emocionEmoji}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between mb-1">
-                            <h4 className="text-white font-semibold truncate text-sm">{checkin.estudianteNombre}</h4>
+                            <h4 className="text-white font-semibold truncate">{checkin.estudianteNombre}</h4>
                             <span className="text-white/50 text-xs">
                               {new Date(checkin.fecha).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className="text-white/70 text-xs mb-2">{checkin.emocion}</p>
+                          <p className="text-white/70 text-sm mb-2">{checkin.emocion}</p>
                           {checkin.respuesta && (
-                            <p className="text-white/60 text-xs italic bg-white/5 rounded-lg p-2">"{checkin.respuesta}"</p>
+                            <p className="text-white/60 text-sm italic">"{checkin.respuesta}"</p>
                           )}
                         </div>
                       </div>
