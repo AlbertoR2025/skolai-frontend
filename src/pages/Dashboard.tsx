@@ -10,7 +10,7 @@ const Dashboard = () => {
     comunicados: 0,
     estudiantes: 0,
     checkins: 0,
-    incidentes: 0
+    incidentes: 0  // ✅ Agregado para mostrar en gráfico
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,14 +25,14 @@ const Dashboard = () => {
         cursosRes, 
         comunicadosRes, 
         checkinsRes, 
-        incidentesRes  // CORREGIDO: sin declaración de variable aquí
+        incidentesRes  // ✅ Agregado para incidentes
       ] = await Promise.all([
         supabase.from('Estudiantes').select('*', { count: 'exact', head: true }),
         supabase.from('Profesores').select('*', { count: 'exact', head: true }),
         supabase.from('Cursos').select('*', { count: 'exact', head: true }),
         supabase.from('Comunicados').select('*', { count: 'exact', head: true }),
         supabase.from('Checkins').select('*', { count: 'exact', head: true }),
-        supabase.from('Incidents').select('*', { count: 'exact', head: true })  // CORREGIDO: tabla Incidents
+        supabase.from('incidents').select('*', { count: 'exact', head: true })  // ✅ Tabla incidents en minúscula
       ]);
 
       console.log('📊 Resultados de Supabase:', {
@@ -41,7 +41,7 @@ const Dashboard = () => {
         cursos: cursosRes.count,
         comunicados: comunicadosRes.count,
         checkins: checkinsRes.count,
-        incidentes: incidentesRes.count
+        incidentes: incidentesRes.count  // ✅ Log de incidentes
       });
 
       setStats({
@@ -50,7 +50,7 @@ const Dashboard = () => {
         comunicados: comunicadosRes.count || 0,
         estudiantes: estudiantesRes.count || 0,
         checkins: checkinsRes.count || 0,
-        incidentes: incidentesRes.count || 0
+        incidentes: incidentesRes.count || 0  // ✅ Asignado correctamente
       });
       setLoading(false);
     } catch (error) {
@@ -61,7 +61,7 @@ const Dashboard = () => {
       const comunicados = JSON.parse(localStorage.getItem('skolai_comunicados') || '[]');
       const estudiantes = JSON.parse(localStorage.getItem('skolai_estudiantes') || '[]');
       const checkins = JSON.parse(localStorage.getItem('skolai_checkins') || '[]');
-      const incidentes = JSON.parse(localStorage.getItem('skolai_incidentes') || '[]');
+      const incidentes = JSON.parse(localStorage.getItem('skolai_incidentes') || '[]');  // ✅ Fallback para incidentes
       
       setStats({
         profesores: profesores.length,
@@ -69,7 +69,7 @@ const Dashboard = () => {
         comunicados: comunicados.length,
         estudiantes: estudiantes.length,
         checkins: checkins.length,
-        incidentes: incidentes.length
+        incidentes: incidentes.length  // ✅ Fallback asignado
       });
       setLoading(false);
     }
@@ -89,9 +89,10 @@ const Dashboard = () => {
     { name: 'Comunicados', value: stats.comunicados, color: '#10b981' },
   ];
 
+  // ✅ Gráfico de Bienestar Emocional actualizado con incidentes
   const dataBienestar = [
     { name: 'Check-ins', cantidad: stats.checkins },
-    { name: 'Incidentes', cantidad: stats.incidentes },
+    { name: 'Incidentes', cantidad: stats.incidentes },  // ✅ Incidentes agregados
   ];
 
   // Datos reales basados en check-ins
@@ -165,7 +166,7 @@ const Dashboard = () => {
                   <Bar dataKey="cantidad" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              {/* Debug info */}
+              {/* ✅ Info actualizada con incidentes */}
               <div className="text-center text-white/60 text-sm mt-2">
                 Check-ins: {stats.checkins} | Incidentes: {stats.incidentes}
               </div>
